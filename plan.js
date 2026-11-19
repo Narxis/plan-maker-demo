@@ -3,6 +3,7 @@ import { state, bump, resetPlan } from './state.js';
 import { outputSize, warp, rotate90 } from './warp.js';
 import { inkMask, removeSpecks } from './filter.js';
 import { straighten } from './straighten.js';
+import { snapCorner } from './snap.js';
 import { el, icon, toast, clamp } from './ui.js';
 
 const MAX_PHOTO = 2000;
@@ -107,6 +108,7 @@ function emptyView(left) {
 
 // ---------- crop ----------
 
+
 function cropView(left) {
   const s = state.source;
   const card = el('section', 'card');
@@ -133,10 +135,10 @@ function cropView(left) {
     h.addEventListener('pointermove', (e) => {
       if (!h.hasPointerCapture(e.pointerId)) return;
       const r = stage.getBoundingClientRect();
-      state.corners[i] = {
+      state.corners[i] = snapCorner(state.corners, i, {
         x: clamp((e.clientX - r.left) / r.width, 0, 1) * s.width,
         y: clamp((e.clientY - r.top) / r.height, 0, 1) * s.height,
-      };
+      });
       place();
     });
     return h;
