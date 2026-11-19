@@ -1,7 +1,8 @@
 // EXPORT tab: title block form and the A4 landscape sheet (printed as PDF).
 import { state, TYPES, getPlanURL, countByType } from './state.js';
 import { markerSvg, swatch } from './markers.js';
-import { el, icon, esc } from './ui.js';
+import { el, icon, esc, toast } from './ui.js';
+import { savePdf } from './sheet-pdf.js';
 
 const FIELDS = [
   ['client', 'Client'], ['adresse', 'Adresse'], ['niveau', 'Niveau'], ['technicien', 'Technicien'],
@@ -11,11 +12,19 @@ const fmtDate = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').rever
 
 let observer = null;
 
+const sheetRows = (c) => [...FIELDS.map(([k, l]) => [l, c[k]]), ['Date de visite', fmtDate(c.date)]];
+
+// "Plan-sanitation_Restaurant-Exemple_2026-11-19.pdf"
+const pdfName = (c) => {
+  const slug = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return ['Plan-sanitation', slug(c.client || ''), c.date].filter(Boolean).join('_') + '.pdf';
+};
+
 function sheetHtml() {
   const { planW: w, planH: h, cartouche: c } = state;
   const S = w * 0.04;
   const counts = countByType();
-  const rows = [...FIELDS.map(([k, l]) => [l, c[k]]), ['Date de visite', fmtDate(c.date)]];
+  const rows = sheetRows(c);
   return `<div class="paper-plan"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
       <image href="${getPlanURL()}" x="0" y="0" width="${w}" height="${h}"/>
       ${state.markers.map((m) => markerSvg(m.type, m.n, m.x * w, m.y * h, S)).join('')}
@@ -63,12 +72,21 @@ export function renderExport(main) {
       ${FIELDS.map(([k, l]) => `<label>${l}<input type="text" name="${k}" value="${esc(c[k])}"></label>`).join('')}
       <label>Date de visite<input type="date" name="date" value="${esc(c.date)}"></label>
     </div>
-    <div class="actions"><button class="btn">${icon('print')}Imprimer / PDF</button></div>`);
+    <div class="actions">
+      <button class="btn" data-a="pdf">${icon('download')}Enregistrer en PDF</button>
+      <button class="btn flat" data-a="print">${icon('print')}Imprimer</button>
+    </div>`);
   form.oninput = (e) => {
     if (!e.target.name) return;
     c[e.target.name] = e.target.value;
     draw();
   };
-  form.querySelector('button').onclick = () => window.print();
+  form.querySelector('[data-a=print]').onclick = () => window.print();
+  form.querySelector('[data-a=pdf]').onclick = async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    try { await savePdf(sheetRows(c), pdfName(c)); } catch { toast("Impossible de créer le PDF."); }
+    b.disabled = false;
+  };
   right.append(form);
 }
