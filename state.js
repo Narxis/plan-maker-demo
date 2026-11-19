@@ -28,7 +28,7 @@ export const state = {
   undo: [],
   darkness: 0.62,
   straight: true,
-  cropSnap: false,
+  cropSnap: true,
   brush: 0.02,        // brush diameter as a share of the plan width
   tool: null,         // null | contrast | erase | draw
   overlay: false, photoAlpha: 0.6,
