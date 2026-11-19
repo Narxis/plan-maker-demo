@@ -1,7 +1,7 @@
 // Crop corners are [TL, TR, BR, BL]. When an edge from the dragged corner is within SNAP_DEG of
 // horizontal or vertical, the corner lines up with its neighbour so that edge is exactly
 // straight, giving right angles. Steeper edges (a photo taken at an angle) stay free.
-export const SNAP_DEG = 4;
+export const SNAP_DEG = 2;
 const H_NEIGHBOUR = [1, 0, 3, 2];
 const V_NEIGHBOUR = [3, 2, 1, 0];
 
