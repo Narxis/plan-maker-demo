@@ -1,5 +1,5 @@
 // EXPORT tab: title block form and the A4 landscape sheet (printed as PDF).
-import { state, TYPES, getPlanURL, countByType } from './state.js';
+import { state, TYPES, getPlanURL, countByType, sheetBox } from './state.js';
 import { markerSvg, swatch } from './markers.js';
 import { el, icon, esc, toast } from './ui.js';
 import { savePdf } from './sheet-pdf.js';
@@ -25,7 +25,8 @@ function sheetHtml() {
   const S = w * 0.04;
   const counts = countByType();
   const rows = sheetRows(c);
-  return `<div class="paper-plan"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+  const b = sheetBox(S);
+  return `<div class="paper-plan"><svg viewBox="${b.x} ${b.y} ${b.w} ${b.h}" preserveAspectRatio="xMidYMid meet">
       <image href="${getPlanURL()}" x="0" y="0" width="${w}" height="${h}"/>
       ${state.markers.map((m) => markerSvg(m.type, m.n, m.x * w, m.y * h, S)).join('')}
     </svg></div>

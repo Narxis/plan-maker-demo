@@ -1,20 +1,21 @@
 // Draws the A4 landscape sheet on a canvas (same layout as the printed sheet in export.js)
 // and saves it as a one-page PDF, without the browser's print dialog.
-import { state, TYPES, getPlanURL, countByType } from './state.js';
+import { state, TYPES, getPlanURL, countByType, sheetBox } from './state.js';
 import { markerSvg } from './markers.js';
 import { jpegToPdf } from './pdf.js';
 
 const PX = 8; // canvas pixels per millimetre (about 200 dpi)
 const FONT = 'Roboto, Arial, sans-serif';
 
-function svgImage(svg) {
+function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    img.src = src;
   });
 }
+const svgImage = (svg) => loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
 
 // Splits text into lines that fit `width` (canvas units) with the current font.
 function wrap(g, text, width) {
@@ -47,14 +48,20 @@ export async function sheetCanvas(rows) {
   const px = x0 + pad, py = y0 + pad, pw = sw - 2 * pad - gap - side, ph = sh - 2 * pad;
   g.strokeRect(px, py, pw, ph);
 
-  // Plan and stations.
+  // Plan, then stations on top. The plan PNG is drawn directly: Safari/iOS does not render a
+  // raster <image> nested inside an SVG that is itself drawn as an image.
+  // Only the part holding the plan and its stations, centred and enlarged (see sheetBox).
   const { planW: w, planH: h } = state;
   const S = w * 0.04;
-  const plan = await svgImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">` +
-    `<image href="${getPlanURL()}" x="0" y="0" width="${w}" height="${h}"/>` +
-    state.markers.map((m) => markerSvg(m.type, m.n, m.x * w, m.y * h, S)).join('') + '</svg>');
-  const k = Math.min((pw - 1) / w, (ph - 1) / h);
-  g.drawImage(plan, px + (pw - w * k) / 2, py + (ph - h * k) / 2, w * k, h * k);
+  const b = sheetBox(S);
+  const k = Math.min((pw - 1) / b.w, (ph - 1) / b.h);
+  const dx = px + (pw - b.w * k) / 2, dy = py + (ph - b.h * k) / 2;
+  g.drawImage(await loadImage(getPlanURL()), b.x, b.y, b.w, b.h, dx, dy, b.w * k, b.h * k);
+  if (state.markers.length) {
+    const marks = await svgImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y} ${b.w} ${b.h}" width="${b.w}" height="${b.h}">` +
+      state.markers.map((m) => markerSvg(m.type, m.n, m.x * w, m.y * h, S)).join('') + '</svg>');
+    g.drawImage(marks, dx, dy, b.w * k, b.h * k);
+  }
 
   // Right column.
   const sx = px + pw + gap;

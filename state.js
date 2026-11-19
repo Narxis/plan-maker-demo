@@ -1,5 +1,6 @@
 // In-memory app state shared by the tabs, plus the plan raster helpers.
 import { maskToImageData } from './filter.js';
+import { inkBox, expandBox } from './bbox.js';
 
 export const TYPES = [
   { id: 'rc', label: 'Rongeur poste à capture' },
@@ -52,19 +53,38 @@ export function resetPlan() {
   bump();
 }
 
-let cache = { version: -1, url: '' };
-// Final mask drawn as a black-on-white PNG data URL (cached per version).
-export function getPlanURL() {
-  if (!state.base) return '';
-  if (cache.version === state.version) return cache.url;
+let cache = { version: -1, url: '', ink: null };
+function finalMask() {
   const { planW: w, planH: h, base, edits } = state;
   const mask = new Uint8Array(w * h);
   for (let i = 0; i < mask.length; i++) mask[i] = edits[i] === 1 ? 1 : edits[i] === 2 ? 0 : base[i];
+  return mask;
+}
+function refreshCache() {
+  if (cache.version === state.version) return;
+  const { planW: w, planH: h } = state;
+  const mask = finalMask();
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   c.getContext('2d').putImageData(maskToImageData(mask, w, h), 0, 0);
-  cache = { version: state.version, url: c.toDataURL('image/png') };
+  cache = { version: state.version, url: c.toDataURL('image/png'), ink: inkBox(mask, w, h) };
+}
+
+// Final mask drawn as a black-on-white PNG data URL (cached per version).
+export function getPlanURL() {
+  if (!state.base) return '';
+  refreshCache();
   return cache.url;
+}
+
+// Part of the plan shown on the sheet: the ink and the stations, with a margin, so a plan
+// whose surroundings were erased is centred and enlarged. s: station size in plan pixels.
+export function sheetBox(s) {
+  const { planW: w, planH: h } = state;
+  if (!state.base) return { x: 0, y: 0, w, h };
+  refreshCache();
+  const pts = state.markers.map((m) => ({ x: m.x * w, y: m.y * h }));
+  return expandBox(cache.ink, w, h, pts, s * 0.8);
 }
 
 export const countByType = () => {
