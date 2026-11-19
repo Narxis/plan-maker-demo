@@ -300,7 +300,30 @@ function cleanView(left, right) {
   } else if (brush()) {
     panel.hidden = false;
     panel.innerHTML = `<label>Taille<span class="cap">Fin</span><input type="range" min="0.005" max="0.08" step="0.001" value="${state.brush}"><span class="cap">Large</span></label>`;
-    panel.querySelector('input').oninput = (e) => { state.brush = +e.target.value; };
+    panel.querySelector('input').oninput = (e) => {
+      state.brush = +e.target.value;
+      // While the size changes, preview the brush in the middle of the plan.
+      const r = canvas.getBoundingClientRect();
+      showCursor(r.left + r.width / 2, r.top + r.height / 2);
+    };
+  }
+
+  // Brush preview: a circle of the real brush size that follows the pointer.
+  const cursor = el('div', 'brush-cursor');
+  cursor.hidden = true;
+  card.querySelector('.stage').append(cursor);
+  function showCursor(clientX, clientY) {
+    if (!brush()) return;
+    const r = canvas.getBoundingClientRect();
+    const d = state.brush * r.width;
+    const sr = cursor.parentElement.getBoundingClientRect();
+    Object.assign(cursor.style, { width: `${d}px`, height: `${d}px`, left: `${clientX - sr.left}px`, top: `${clientY - sr.top}px` });
+    cursor.hidden = false;
+  }
+  if (brush()) {
+    canvas.addEventListener('pointermove', (e) => showCursor(e.clientX, e.clientY));
+    canvas.addEventListener('pointerdown', (e) => showCursor(e.clientX, e.clientY));
+    canvas.addEventListener('pointerleave', () => { cursor.hidden = true; });
   }
 
   // Brush strokes go to the edits layer so a contrast change never loses them.

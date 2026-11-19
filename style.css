@@ -56,6 +56,9 @@ canvas.brush { cursor: crosshair; }
 .panel { border-top: 1px solid var(--divider); padding: 4px 16px; }
 .panel label { display: flex; align-items: center; gap: 12px; min-height: 48px; font-weight: 500; }
 .panel input[type=range] { flex: 1; min-width: 0; accent-color: var(--primary); }
+/* Brush size preview: teal ring with a white halo, readable on black walls and white paper. */
+.brush-cursor { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid var(--primary); box-shadow: 0 0 0 1px #fff, inset 0 0 0 1px #fff; pointer-events: none; }
+.brush-cursor[hidden] { display: none; }
 .legend-line { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .ink-dot { width: 16px; height: 4px; background: var(--overlay); flex: none; }
 .cap { font-size: 12px; color: var(--text-2); font-weight: 400; }
