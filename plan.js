@@ -120,6 +120,7 @@ function cropView(left) {
     <p class="hint">Glissez les 4 repères sur les coins du plan.</p>
     <div class="tools">
       <button class="tool" data-a="rot">${icon('rotate')}Pivoter</button>
+      <button class="tool" data-a="snap" aria-pressed="${state.cropSnap}">${icon('magnet')}Magnétisme</button>
       <button class="tool primary" data-a="ok">${icon('check')}Valider le recadrage</button>
     </div>`;
   left.append(card);
@@ -135,10 +136,11 @@ function cropView(left) {
     h.addEventListener('pointermove', (e) => {
       if (!h.hasPointerCapture(e.pointerId)) return;
       const r = stage.getBoundingClientRect();
-      state.corners[i] = snapCorner(state.corners, i, {
+      const p = {
         x: clamp((e.clientX - r.left) / r.width, 0, 1) * s.width,
         y: clamp((e.clientY - r.top) / r.height, 0, 1) * s.height,
-      });
+      };
+      state.corners[i] = state.cropSnap ? snapCorner(state.corners, i, p) : p;
       place();
     });
     return h;
@@ -156,6 +158,10 @@ function cropView(left) {
     state.source = rotate90(state.source, true);
     state.corners = insetCorners(state.source);
     refresh();
+  };
+  card.querySelector('[data-a=snap]').onclick = (e) => {
+    state.cropSnap = !state.cropSnap;
+    e.currentTarget.setAttribute('aria-pressed', String(state.cropSnap));
   };
   card.querySelector('[data-a=ok]').onclick = async (e) => {
     e.currentTarget.disabled = true;
@@ -275,7 +281,7 @@ function cleanView(left, right) {
   if (state.overlay) {
     const op = card.querySelector('.overlay-panel');
     op.hidden = false;
-    op.innerHTML = `<label>Photo<span class="cap">Pâle</span><input type="range" min="0.1" max="1" step="0.05" value="${state.photoAlpha}"><span class="cap">Nette</span></label>
+    op.innerHTML = `<label>Opacité<input type="range" min="0.1" max="1" step="0.05" value="${state.photoAlpha}" aria-label="Opacité de la photo"></label>
       <p class="hint legend-line"><span class="ink-dot"></span>En bleu : ce qui sera gardé sur le plan.</p>`;
     op.querySelector('input').oninput = (e) => { state.photoAlpha = +e.target.value; schedule(); };
   }

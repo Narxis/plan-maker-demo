@@ -6,7 +6,8 @@ export const TYPES = [
   { id: 'rcons', label: 'Rongeur poste à consommation' },
   { id: 'ramp', label: 'Rampant poste à capture' },
   { id: 'gel', label: 'Point de gel' },
-  { id: 'mep', label: 'MEP - Rongeur poste à capture' },
+  { id: 'deiv', label: 'DEIV' },
+  { id: 'mites', label: 'Piège à mites' },
 ];
 export const typeLabel = (id) => (TYPES.find((t) => t.id === id) || TYPES[0]).label;
 
@@ -26,6 +27,7 @@ export const state = {
   undo: [],
   darkness: 0.62,
   straight: true,
+  cropSnap: false,
   brush: 0.02,        // brush diameter as a share of the plan width
   tool: null,         // null | contrast | erase | draw
   overlay: false, photoAlpha: 0.6,

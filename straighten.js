@@ -60,7 +60,7 @@ export function straighten(mask, w, h, opts = {}) {
     tol: 2,                                        // max deviation (degrees) from a main axis
     minLen: Math.max(12, Math.round(size * 0.035)), // shorter runs are left alone
     maxGap: Math.max(3, Math.round(size * 0.005)),  // larger gaps split a wall (doors stay open)
-    band: Math.max(8, Math.round(size * 0.008)),    // search half-width around a candidate line
+    band: Math.max(8, Math.round(size * 0.015)),    // search half-width around a candidate line (fits thick outer walls)
     slack: 3,                                      // wobble removed on each side of the wall
     ...opts,
   };
@@ -184,15 +184,44 @@ export function straighten(mask, w, h, opts = {}) {
         const x = Math.round(rr * c - u * s), y = Math.round(rr * s + u * c);
         return x >= 0 && y >= 0 && x < w && y < h && mask[y * w + x] === 1;
       };
-      for (let u = u0; u <= u1; u += 2) {
+      // Probe beyond the wall's own fuzzy, wobbly edge.
+      const side = Math.max(t / 2 + o.slack, half) + 3;
+      // Text: letters cross the line every few pixels. Walls are crossed rarely (other walls).
+      let crossings = 0, prev = false;
+      for (let u = u0; u <= u1; u += 1) {
         const rr = rho + fit(u);
+        const a = inkAt(rr - side, u), b = inkAt(rr + side, u);
+        if (a && b) both++;
         probes++;
-        const side = t / 2 + o.slack + 2;
-        if (inkAt(rr - side, u) && inkAt(rr + side, u)) both++;
+        const now = a || b;
+        if (now && !prev) crossings++;
+        prev = now;
       }
       if (both > 0.3 * probes) continue;
+      if (crossings >= 4 && crossings > len / 25) continue;
 
-      const wall = run.filter((p) => Math.abs(p.r - fit(p.u)) <= half);
+      // A wall is solid: about as many ink pixels across it everywhere along its length.
+      // Text read as a line (a bold word, or the tops of a row of letters) has thin spots
+      // between and inside the letters.
+      {
+        const across = new Map();
+        for (const p of core) {
+          if (Math.abs(p.r - fit(p.u)) > t / 2 + 1) continue;
+          const key = Math.round(p.u);
+          across.set(key, (across.get(key) || 0) + 1);
+        }
+        let thin = 0;
+        for (let u = Math.round(u0); u <= Math.round(u1); u++) if ((across.get(u) || 0) < 0.5 * t) thin++;
+        if (thin > 0.15 * (len + 1)) continue;
+      }
+
+      // Pixels of a crossing stroke (the side of a box, a wall meeting this one) continue past
+      // the band: keep them, only the wall's own pixels are removed and redrawn.
+      const crossing = (p) => {
+        const d = p.r - fit(p.u);
+        return inkAt(rho + fit(p.u) + Math.sign(d || 1) * (half + 1.5), p.u);
+      };
+      const wall = run.filter((p) => Math.abs(p.r - fit(p.u)) <= half && !(Math.abs(p.r - fit(p.u)) > t / 2 && crossing(p)));
       for (const p of wall) {
         out[ys[p.k] * w + xs[p.k]] = 0;
         alive[p.k] = 0;
