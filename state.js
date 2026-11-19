@@ -38,7 +38,7 @@ export const state = {
   nextId: 1,
   selectedType: 'rc',
   editing: null,      // marker id open in the editor
-  cartouche: { client: '', adresse: '', niveau: '', technicien: '', date: today(), remarques: '' },
+  cartouche: { client: '', adresse: '', niveau: '', technicien: '', date: today() },
 };
 
 export const bump = () => { state.version++; };

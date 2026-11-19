@@ -15,7 +15,7 @@ function sheetHtml() {
   const { planW: w, planH: h, cartouche: c } = state;
   const S = w * 0.04;
   const counts = countByType();
-  const rows = [...FIELDS.map(([k, l]) => [l, c[k]]), ['Date de visite', fmtDate(c.date)], ['Remarques', c.remarques]];
+  const rows = [...FIELDS.map(([k, l]) => [l, c[k]]), ['Date de visite', fmtDate(c.date)]];
   return `<div class="paper-plan"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
       <image href="${getPlanURL()}" x="0" y="0" width="${w}" height="${h}"/>
       ${state.markers.map((m) => markerSvg(m.type, m.n, m.x * w, m.y * h, S)).join('')}
@@ -62,7 +62,6 @@ export function renderExport(main) {
   const form = el('section', 'card', `<h2 class="section">Cartouche</h2><div class="form">
       ${FIELDS.map(([k, l]) => `<label>${l}<input type="text" name="${k}" value="${esc(c[k])}"></label>`).join('')}
       <label>Date de visite<input type="date" name="date" value="${esc(c.date)}"></label>
-      <label>Remarques<textarea name="remarques" rows="3">${esc(c.remarques)}</textarea></label>
     </div>
     <div class="actions"><button class="btn">${icon('print')}Imprimer / PDF</button></div>`);
   form.oninput = (e) => {
