@@ -25,9 +25,10 @@ export const state = {
   edits: null,        // Uint8Array: 0 untouched, 1 drawn ink, 2 erased
   undo: [],
   darkness: 0.62,
+  straight: true,
   brush: 0.02,        // brush diameter as a share of the plan width
   tool: null,         // null | contrast | erase | draw
-  showPhoto: false,
+  overlay: false, photoAlpha: 0.6,
   planW: 0,
   planH: 0,
   version: 0,         // bumped whenever the final mask changes
@@ -44,7 +45,7 @@ export const bump = () => { state.version++; };
 export function resetPlan() {
   Object.assign(state, {
     step: 'empty', source: null, corners: null, warped: null, base: null, edits: null,
-    undo: [], tool: null, showPhoto: false, planW: 0, planH: 0, markers: [], editing: null,
+    undo: [], tool: null, overlay: false, planW: 0, planH: 0, markers: [], editing: null,
   });
   bump();
 }

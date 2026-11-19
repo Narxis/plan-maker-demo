@@ -2,6 +2,7 @@
 import { state, bump, resetPlan } from './state.js';
 import { outputSize, warp, rotate90 } from './warp.js';
 import { inkMask, removeSpecks } from './filter.js';
+import { straighten } from './straighten.js';
 import { el, icon, toast, clamp } from './ui.js';
 
 const MAX_PHOTO = 2000;
@@ -165,7 +166,8 @@ function cropView(left) {
 function computeBase() {
   const { width: w, height: h, data } = state.warped;
   const m = inkMask(data, w, h, { darkness: state.darkness });
-  state.base = removeSpecks(m, w, h, Math.round((w * h) / 40000));
+  const clean = removeSpecks(m, w, h, Math.round((w * h) / 40000));
+  state.base = state.straight ? straighten(clean, w, h).mask : clean;
   bump();
 }
 
@@ -176,7 +178,7 @@ function validateCrop() {
   state.edits = new Uint8Array(w * h);
   state.undo = [];
   state.tool = null;
-  state.showPhoto = false;
+  state.overlay = false;
   computeBase();
   state.step = 'clean';
   refresh();
@@ -217,12 +219,14 @@ function cleanView(left, right) {
       ${tb('crop', 'crop', 'Recadrer')}
       ${tb('rot', 'rotate', 'Pivoter')}
       ${tb('contrast', 'contrast', 'Contraste', state.tool === 'contrast')}
+      ${tb('straight', 'straight', 'Murs droits', state.straight)}
       ${tb('erase', 'erase', 'Gomme', state.tool === 'erase')}
       ${tb('draw', 'edit', 'Crayon', state.tool === 'draw')}
       ${tb('undo', 'undo', 'Annuler')}
-      ${tb('photo', 'eye', 'Voir la photo', state.showPhoto)}
+      ${tb('photo', 'eye', 'Superposer la photo', state.overlay)}
     </div>
-    <div class="panel" hidden></div>`;
+    <div class="panel" hidden></div>
+    <div class="panel overlay-panel" hidden></div>`;
   left.append(card);
 
   const canvas = card.querySelector('canvas');
@@ -232,12 +236,28 @@ function cleanView(left, right) {
   const photo = toImageData(state.warped);
   const brush = () => state.tool === 'erase' || state.tool === 'draw';
 
+  // Overlay: the photo faded towards white, with the kept ink in blue on top,
+  // so walls the filter lost show up as dark photo lines without blue.
+  const OVERLAY_INK = 0xFFE5881E; // #1E88E5 as little-endian ABGR
   function paint() {
-    if (state.showPhoto) { ctx.putImageData(photo, 0, 0); return; }
     const { base, edits } = state;
-    for (let i = 0; i < px.length; i++) {
-      const e = edits[i];
-      px[i] = (e === 1 || (e === 0 && base[i])) ? 0xFF000000 : 0xFFFFFFFF;
+    if (!state.overlay) {
+      for (let i = 0; i < px.length; i++) {
+        const e = edits[i];
+        px[i] = (e === 1 || (e === 0 && base[i])) ? 0xFF000000 : 0xFFFFFFFF;
+      }
+    } else {
+      const src = photo.data, a = state.photoAlpha;
+      const d = img.data;
+      for (let i = 0; i < px.length; i++) {
+        const e = edits[i];
+        if (e === 1 || (e === 0 && base[i])) { px[i] = OVERLAY_INK; continue; }
+        const o = i * 4;
+        d[o] = 255 - (255 - src[o]) * a;
+        d[o + 1] = 255 - (255 - src[o + 1]) * a;
+        d[o + 2] = 255 - (255 - src[o + 2]) * a;
+        d[o + 3] = 255;
+      }
     }
     ctx.putImageData(img, 0, 0);
   }
@@ -246,8 +266,17 @@ function cleanView(left, right) {
   const undoBtn = card.querySelector('[data-a=undo]');
   const syncUndo = () => { undoBtn.disabled = !state.undo.length; };
   syncUndo();
-  canvas.style.touchAction = brush() && !state.showPhoto ? 'none' : 'auto';
-  if (brush() && !state.showPhoto) canvas.classList.add('brush');
+  canvas.style.touchAction = brush() ? 'none' : 'auto';
+  if (brush()) canvas.classList.add('brush');
+
+  // Overlay slider, shown alongside any tool slider so contrast can be tuned while comparing.
+  if (state.overlay) {
+    const op = card.querySelector('.overlay-panel');
+    op.hidden = false;
+    op.innerHTML = `<label>Photo<span class="cap">Pâle</span><input type="range" min="0.1" max="1" step="0.05" value="${state.photoAlpha}"><span class="cap">Nette</span></label>
+      <p class="hint legend-line"><span class="ink-dot"></span>En bleu : ce qui sera gardé sur le plan.</p>`;
+    op.querySelector('input').oninput = (e) => { state.photoAlpha = +e.target.value; schedule(); };
+  }
 
   // Panel with the slider of the active tool.
   const panel = card.querySelector('.panel');
@@ -294,7 +323,7 @@ function cleanView(left, right) {
     requestAnimationFrame(() => { queued = false; paint(); });
   };
   canvas.addEventListener('pointerdown', (e) => {
-    if (!brush() || state.showPhoto) return;
+    if (!brush()) return;
     canvas.setPointerCapture(e.pointerId);
     state.undo.push(state.edits.slice());
     if (state.undo.length > MAX_UNDO) state.undo.shift();
@@ -325,7 +354,8 @@ function cleanView(left, right) {
       state.edits = state.undo.pop();
       bump(); paint(); syncUndo();
     },
-    photo: () => { state.showPhoto = !state.showPhoto; refresh(); },
+    photo: () => { state.overlay = !state.overlay; refresh(); },
+    straight: () => { state.straight = !state.straight; computeBase(); refresh(); },
   };
   card.querySelectorAll('.tool').forEach((b) => { b.onclick = act[b.dataset.a]; });
 
