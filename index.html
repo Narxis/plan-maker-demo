@@ -4,7 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Plan de sanitation</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=e933cfc">
+<!-- Every module URL carries the release version, so a browser never mixes cached files from
+     two releases. scripts/publish-demo.mjs replaces "dev" with the commit hash on publish. -->
+<script type="importmap">
+{
+  "imports": {
+    "./app.js": "./app.js?v=e933cfc",
+    "./bbox.js": "./bbox.js?v=e933cfc",
+    "./export.js": "./export.js?v=e933cfc",
+    "./filter.js": "./filter.js?v=e933cfc",
+    "./markers.js": "./markers.js?v=e933cfc",
+    "./pdf.js": "./pdf.js?v=e933cfc",
+    "./plan.js": "./plan.js?v=e933cfc",
+    "./postes.js": "./postes.js?v=e933cfc",
+    "./sheet-pdf.js": "./sheet-pdf.js?v=e933cfc",
+    "./snap.js": "./snap.js?v=e933cfc",
+    "./state.js": "./state.js?v=e933cfc",
+    "./straighten.js": "./straighten.js?v=e933cfc",
+    "./ui.js": "./ui.js?v=e933cfc",
+    "./warp.js": "./warp.js?v=e933cfc"
+  }
+}
+</script>
 </head>
 <body>
 <svg style="display:none" aria-hidden="true">
@@ -43,6 +65,6 @@
 
 <main id="main"></main>
 <div id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="app.js"></script>
+<script type="module">import './app.js';</script>
 </body>
 </html>

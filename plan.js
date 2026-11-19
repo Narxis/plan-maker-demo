@@ -80,7 +80,9 @@ async function fromFile(file) {
 
 async function fromSample() {
   try {
-    setSource(rasterize(await loadImage(new URL('sample-plan.svg', import.meta.url).href), 1600, true));
+    // Same release version as this module (?v=...), so the sample is never a stale cached copy.
+    const url = new URL('sample-plan.svg' + new URL(import.meta.url).search, import.meta.url);
+    setSource(rasterize(await loadImage(url.href), 1600, true));
   } catch {
     toast("Impossible de charger le plan d'exemple.");
   }
