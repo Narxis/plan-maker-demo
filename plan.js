@@ -174,7 +174,8 @@ function cropView(left) {
 function computeBase() {
   const { width: w, height: h, data } = state.warped;
   const m = inkMask(data, w, h, { darkness: state.darkness });
-  const clean = removeSpecks(m, w, h, Math.round((w * h) / 40000));
+  // Specks smaller than ~1/100000 of the plan are dust; small room-name letters stay.
+  const clean = removeSpecks(m, w, h, Math.round((w * h) / 100000));
   state.base = state.straight ? straighten(clean, w, h).mask : clean;
   bump();
 }
