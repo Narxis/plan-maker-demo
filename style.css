@@ -37,6 +37,12 @@ main:has(> .col:empty) { grid-template-columns: minmax(0, 1fr); }
 /* Keep the whole photo/plan on screen: the stage shrinks to the canvas, which never exceeds the viewport height. */
 .stage { width: fit-content; max-width: 100%; margin: 0 auto; }
 .stage canvas, .stage img { width: auto; max-width: 100%; max-height: calc(100vh - 230px); max-height: calc(100dvh - 230px); }
+/* Leave room on screen for what sits under the picture: hint and buttons (crop),
+   tool rows and their sliders (cleanup). */
+@media (min-width: 900px) {
+  .crop-pad .stage canvas { max-height: calc(100vh - 340px); max-height: calc(100dvh - 340px); }
+  .plan .stage canvas { max-height: calc(100vh - 420px); max-height: calc(100dvh - 420px); }
+}
 .paper-bg { border: 1px solid var(--divider); background: #fff; }
 canvas.brush { cursor: crosshair; }
 .overlay, .lines { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
